@@ -1,0 +1,55 @@
+name: Validate
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Supported: php, python, node, go, rust, c.
+  # Empty by default so a freshly-templated repo doesn't ship red CI for
+  # languages it doesn't use yet - add the ones you actually need.
+  LINTERS: '[]'
+
+jobs:
+  lint:
+    name: Lint
+    if: fromJSON(env.LINTERS)[0] != null
+    uses: k-3679/reusable-workflows/.github/workflows/lint.yml@main
+    with:
+      linters: ${{ env.LINTERS }}
+      # Adjust these if your language sources don't live at the repo root.
+      php-path: "."
+      python-path: "."
+      eslint-config: ".eslintrc.json"
+      eslint-glob: "**/*.js"
+      go-path: "."
+      rust-path: "."
+      c-path: "."
+
+  security:
+    name: Security scan
+    permissions:
+      contents: read
+      security-events: write
+    uses: k-3679/reusable-workflows/.github/workflows/security-scan.yml@main
+    with:
+      scan-ref: "."
+
+  changelog:
+    name: Validate changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Checks the changelog was genuinely updated by whatever triggered this workflow.
+      - uses: k-3679/reusable-workflows/.github/actions/validate-changelog@main

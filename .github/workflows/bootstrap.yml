@@ -1,0 +1,86 @@
+name: Bootstrap repo settings
+
+# Run this once by hand after creating a repo from this template (Actions tab ->
+# "Bootstrap repo settings" -> Run workflow). Safe to re-run any time - every step
+# is an upsert against the files in .github/repo-rules/. See that folder's README
+# for what each file does and what this workflow can't do for you.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  administration: write
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Apply repo-rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Repo settings (merge strategy, auto-delete branches, wiki/projects)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method PATCH "repos/${{ github.repository }}" \
+            --input .github/repo-rules/repo-settings.json
+
+      - name: Actions permissions (allow-listed actions, read-only default token)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jq '{enabled: .permissions.enabled, allowed_actions: .permissions.allowed_actions}' \
+            .github/repo-rules/actions-permissions.json \
+            | gh api --method PUT "repos/${{ github.repository }}/actions/permissions" --input -
+
+          jq '.selected_actions' .github/repo-rules/actions-permissions.json \
+            | gh api --method PUT "repos/${{ github.repository }}/actions/permissions/selected-actions" --input -
+
+          jq '{default_workflow_permissions, can_approve_pull_request_reviews}' \
+            .github/repo-rules/actions-permissions.json \
+            | gh api --method PUT "repos/${{ github.repository }}/actions/permissions/workflow" --input -
+
+      - name: Rulesets (branch protection for main, tag protection for v*)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          apply_ruleset () {
+            local file="$1"
+            local name
+            name=$(jq -r '.name' "$file")
+
+            local existing_id
+            existing_id=$(gh api "repos/${{ github.repository }}/rulesets?includes_parents=false" \
+              --jq ".[] | select(.name == \"$name\") | .id" || true)
+
+            if [ -n "$existing_id" ]; then
+              echo "Updating existing ruleset '$name' (id: $existing_id)"
+              gh api --method PUT "repos/${{ github.repository }}/rulesets/$existing_id" --input "$file"
+            else
+              echo "Creating ruleset '$name'"
+              gh api --method POST "repos/${{ github.repository }}/rulesets" --input "$file"
+            fi
+          }
+
+          apply_ruleset .github/repo-rules/branch-ruleset.main.json
+          apply_ruleset .github/repo-rules/tag-ruleset.releases.json
+
+      - name: Summary
+        run: |
+          {
+            echo "### Bootstrap complete"
+            echo ""
+            echo "Applied automatically:"
+            echo "- Repo settings (merge strategy, auto-delete branches, wiki/projects off)"
+            echo "- Actions permissions (allow-listed to GitHub-owned + verified + \`k-3679/*\`)"
+            echo "- Branch ruleset on \`main\`"
+            echo "- Tag ruleset on \`v*\`"
+            echo ""
+            echo "Still manual (see \`.github/repo-rules/README.md\`):"
+            echo "- GitHub Advanced Security / private code scanning, if this repo is private"
+            echo "- Repository visibility"
+            echo "- Any org-level policy, if this repo ever moves into an org"
+          } >> "$GITHUB_STEP_SUMMARY"

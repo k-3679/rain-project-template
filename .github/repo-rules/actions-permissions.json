@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "enabled": true,
+    "allowed_actions": "selected"
+  },
+  "selected_actions": {
+    "github_owned_allowed": true,
+    "verified_allowed": true,
+    "patterns_allowed": ["k-3679/*"]
+  },
+  "default_workflow_permissions": "read",
+  "can_approve_pull_request_reviews": false
+}
