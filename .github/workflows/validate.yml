@@ -13,20 +13,15 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Supported: php, python, node, go, rust, c.
-  # Empty by default so a freshly-templated repo doesn't ship red CI for
-  # languages it doesn't use yet - add the ones you actually need.
-  LINTERS: '[]'
   CHANGELOG_FILE: CHANGELOG.md
-  SECURITY_FAIL_THRESHOLD_PERCENT: 0
 
 jobs:
   lint:
     name: Lint
-    if: fromJSON(env.LINTERS)[0] != null
+    if: fromJSON('[]')[0] != null
     uses: k-3679/reusable-workflows/.github/workflows/lint.yml@main
     with:
-      linters: ${{ env.LINTERS }}
+      linters: '[]'
       # Adjust these if your language sources don't live at the repo root.
       php-path: "."
       python-path: "."
@@ -44,7 +39,7 @@ jobs:
     uses: k-3679/reusable-workflows/.github/workflows/security-scan.yml@main
     with:
       scan-ref: "."
-      fail-threshold-percent: ${{ env.SECURITY_FAIL_THRESHOLD_PERCENT }}
+      fail-threshold-percent: 0
 
   changelog:
     name: Validate changelog

@@ -44,9 +44,11 @@ template picks it up.
 1. Create the new repo from this template on GitHub.
 2. Clone it, replace this README, update `CHANGELOG.md`'s project name if you keep the
    Keep a Changelog header.
-3. In `.github/workflows/validate.yml`, set `LINTERS` to whatever languages the project
-   actually uses (e.g. `'["node"]'`) - it ships empty on purpose so a brand-new repo
-   doesn't start with a failing check for a language it doesn't have yet.
+3. In `.github/workflows/validate.yml`, update the `lint` job's `if:` and `with.linters:`
+   to whatever languages the project actually uses (e.g. `'["node"]'` in both places -
+   `env` isn't usable there, so they're two literals kept in sync, not one shared value).
+   It ships empty on purpose so a brand-new repo doesn't start with a failing check for a
+   language it doesn't have yet.
 4. Push to `main` once, then run the **Bootstrap repo settings** workflow
    (`Actions` tab -> `workflow_dispatch`) to apply branch/tag rulesets, merge-strategy
    settings, and the Actions allow-list. See [`.github/repo-rules/README.md`](.github/repo-rules/README.md)
