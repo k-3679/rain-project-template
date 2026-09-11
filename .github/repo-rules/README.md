@@ -17,32 +17,28 @@ e.g. it's a plan/billing-gated setting).
 
 ## Prerequisites
 
-None of the JSON files or `bootstrap.yml` turn these on - they live in
-**Settings → Code security** (previously "Security & analysis") and have to be enabled
-per-repo (or as an org/account default) before the corresponding CI step will do anything
-useful. Nothing in `.github/repo-rules/` can flip these, they're account/plan-level toggles,
-not repo-settings API fields the token can PATCH.
+These are manual, one-time toggles in the GitHub UI. Nothing in `.github/repo-rules/` or
+`bootstrap.yml` can enable them via the API.
 
-- **Dependabot version updates** (`dependabot.yml`, the PR-opening bot) - works out of the
-  box on any repo, public or private, free on every plan. Nothing to enable; it's driven
-  entirely by the config file already in this template.
-- **Dependabot alerts** + **Dependabot security updates** - free on both public and private
-  repos, but not always on by default for private repos. Enable both toggles under
-  Settings → Code security. Security updates requires alerts to be on first.
-- **Code scanning** (the Trivy SARIF upload in `security-scan.yml`, via
-  `github/codeql-action/upload-sarif`) - free and on by default for **public** repos. For a
-  **private** repo this needs GitHub Advanced Security (GHAS), which historically has been a
-  paid add-on gated behind org/Enterprise billing rather than something a personal-account
-  Pro plan can just switch on. Check Settings → Code security → "GitHub Advanced Security"
-  for whatever's actually available on the account before relying on this - if it's not
-  available, the SARIF upload step will fail on a private repo and the workflow needs
-  `continue-on-error: true` added to that step, or the repo needs to be public.
-- **Secret scanning** - same story as code scanning: free/on for public repos, GHAS-gated for
-  private. Not currently wired into any workflow here, worth turning on regardless since it's
-  free where it applies.
-- **`gh` CLI authentication** for the manual fallback commands below, or the `ADMIN_TOKEN`
-  secret for `bootstrap.yml` - either way you need a token with admin rights on the repo,
-  which isn't something Actions' own `GITHUB_TOKEN` can ever provide (see "Automatic" below).
+**Where:** repo → **Settings** → **Security** (sidebar) → **Advanced Security**. If your
+repo doesn't show that link, look for **Code security and analysis** instead - same page,
+older name.
+
+- **Dependabot version updates** - already works, nothing to enable. Driven entirely by
+  `dependabot.yml`, which ships in this template.
+- **Dependabot alerts** - turn on. Free for public and private repos.
+- **Dependabot security updates** - turn on (requires alerts to be on first). Free for public
+  and private repos.
+- **Code scanning** - required for the Trivy SARIF upload in `security-scan.yml` to work.
+  Free and on by default for public repos. For a private repo it needs GitHub Advanced
+  Security enabled, which is a paid add-on on most plans. If it's not available, add
+  `continue-on-error: true` to the SARIF upload step, or make the repo public.
+- **Secret scanning** - turn on if available. Same public/private split as code scanning.
+  Not wired into any workflow here, just worth having on.
+
+You also need a token with admin rights on the repo - either `gh auth login` for the manual
+`gh api` commands below, or an `ADMIN_TOKEN` secret for `bootstrap.yml`. `GITHUB_TOKEN` can
+never provide this (see "Automatic" below).
 
 ## Why
 
