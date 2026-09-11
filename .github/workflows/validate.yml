@@ -17,6 +17,8 @@ env:
   # Empty by default so a freshly-templated repo doesn't ship red CI for
   # languages it doesn't use yet - add the ones you actually need.
   LINTERS: '[]'
+  CHANGELOG_FILE: CHANGELOG.md
+  SECURITY_FAIL_THRESHOLD_PERCENT: 0
 
 jobs:
   lint:
@@ -42,6 +44,7 @@ jobs:
     uses: k-3679/reusable-workflows/.github/workflows/security-scan.yml@main
     with:
       scan-ref: "."
+      fail-threshold-percent: ${{ env.SECURITY_FAIL_THRESHOLD_PERCENT }}
 
   changelog:
     name: Validate changelog
@@ -53,3 +56,33 @@ jobs:
 
       # Checks the changelog was genuinely updated by whatever triggered this workflow.
       - uses: k-3679/reusable-workflows/.github/actions/validate-changelog@main
+        with:
+          changelog-file: ${{ env.CHANGELOG_FILE }}
+          base-sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          default-branch: main
+
+      # Blocks merging into main while [Unreleased] still has pending entries.
+      - name: Check unreleased changes on main
+        if: github.event_name == 'pull_request'
+        uses: k-3679/reusable-workflows/.github/actions/check-unreleased-changelog@main
+        with:
+          changelog-file: ${{ env.CHANGELOG_FILE }}
+          ref: ${{ github.event.pull_request.base.sha }}
+
+  summary:
+    name: Validation summary
+    if: always()
+    needs: [lint, security, changelog]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report job results
+        run: |
+          {
+            echo "### 📝 Validation summary"
+            echo
+            echo "| Job | Result |"
+            echo "| --- | --- |"
+            echo "| Lint | ${{ needs.lint.result }} |"
+            echo "| Security scan | ${{ needs.security.result }} |"
+            echo "| Validate changelog | ${{ needs.changelog.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

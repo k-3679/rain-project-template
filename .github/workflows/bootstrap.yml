@@ -1,16 +1,11 @@
 name: Bootstrap repo settings
 
-# Run this once by hand after creating a repo from this template (Actions tab ->
-# "Bootstrap repo settings" -> Run workflow). Safe to re-run any time - every step
+# Run this once after creating a repo from this template. Safe to re-run any timee, every step
 # is an upsert against the files in .github/repo-rules/. See that folder's README
 # for what each file does and what this workflow can't do for you.
 
 on:
   workflow_dispatch: {}
-
-permissions:
-  administration: write
-  contents: read
 
 jobs:
   bootstrap:
@@ -21,14 +16,14 @@ jobs:
 
       - name: Repo settings (merge strategy, auto-delete branches, wiki/projects)
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: |
           gh api --method PATCH "repos/${{ github.repository }}" \
             --input .github/repo-rules/repo-settings.json
 
       - name: Actions permissions (allow-listed actions, read-only default token)
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: |
           jq '{enabled: .permissions.enabled, allowed_actions: .permissions.allowed_actions}' \
             .github/repo-rules/actions-permissions.json \
@@ -43,7 +38,7 @@ jobs:
 
       - name: Rulesets (branch protection for main, tag protection for v*)
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -71,7 +66,7 @@ jobs:
       - name: Summary
         run: |
           {
-            echo "### Bootstrap complete"
+            echo "### ⚡Bootstrap complete"
             echo ""
             echo "Applied automatically:"
             echo "- Repo settings (merge strategy, auto-delete branches, wiki/projects off)"
