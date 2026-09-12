@@ -11,7 +11,7 @@ on:
 
 concurrency:
   group: validate-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   CHANGELOG_FILE: CHANGELOG.md
@@ -53,7 +53,6 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     continue-on-error: true
     runs-on: ubuntu-latest
-    continue-on-error: true 
     steps:
       - uses: actions/checkout@v7
         with:
@@ -82,7 +81,7 @@ jobs:
     steps:
       - name: Report job results
         env:
-          SCAN_LINK: ${{ github.event_name == 'pull_request' && github.event.pull_request.html_url || format('https://github.com/{0}/security/code-scanning?query=ref:{1}', github.repository, github.ref) }}
+          SCAN_LINK: ${{ github.event_name == 'pull_request' && format('https://github.com/{0}/security/code-scanning?query=pr:{1}', github.repository, github.event.pull_request.number) || format('https://github.com/{0}/security/code-scanning?query=ref:{1}', github.repository, github.ref) }}
         run: |
           {
             echo "### 📝 Validation summary"
@@ -91,7 +90,7 @@ jobs:
             echo "| --- | --- |"
             echo "| Lint | ${{ needs.lint.result }} |"
             echo "| Trivy scan | ${{ needs.trivy.result }} |"
-            echo "| CodeQL Scan | ${{ needs.codeql.result }} |"
+            echo "| CodeQL scan | ${{ needs.codeql.result }} |"
             echo "| Validate changelog | ${{ needs.changelog.result }} |"
             echo ""
             echo "🛡️ **Check scan results:** [scan results]($SCAN_LINK)"
