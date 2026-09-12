@@ -29,4 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `validate.yml`: `security` job was missing the `actions: read` permission required by `codeql-action/upload-sarif`, causing the SARIF upload to fail with "Resource not accessible by integration".
+- `validate.yml`: `summary` job's scan-results link went to the PR's Conversation tab on PR-triggered runs instead of the actual findings; now links to Code scanning alerts filtered by `pr:<number>`.
+- `branch-ruleset.main.json`: `required_status_checks` had `"CodeQL Scan"` (capital S) but the actual job is named `CodeQL scan` (lowercase); the mismatch left that required check permanently stuck on "Expected, waiting for status to be reported" since the context could never match.
 
