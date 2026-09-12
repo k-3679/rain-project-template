@@ -36,3 +36,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `validate.yml`: triggers on push event on all branches. This is required by Trivy to upload the baseline SARIF to the Security tab.
 
 
+ 
