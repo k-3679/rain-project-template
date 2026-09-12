@@ -58,6 +58,7 @@ rather than duplicating logic.
    anything else called out there under "Things that can't be scripted".
 6. If you rename any `validate.yml` job, or change what it calls, update the matching
    `context` entries in `branch-ruleset.main.json` and re-run `bootstrap.yml`.
+7. Run `validate.yml` manually once on **main** to generate code scanning tools base configs (CodeQL, Trivy).
 
 > [!NOTE]
 > For jobs that call a reusable workflow whose own job also has a `name:`, GitHub posts
