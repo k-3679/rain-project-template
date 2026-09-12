@@ -11,7 +11,7 @@ of these automatically on `workflow_dispatch.
 | `branch-ruleset.main.json` | Protects `main`: no deletion, no force-push, linear history, PR + 1 review required, must pass `Security scan` and `Validate changelog`. | `POST/PUT /repos/{owner}/{repo}/rulesets` |
 | `tag-ruleset.releases.json` | Protects `v*` tags from being created/moved/deleted by anyone outside the bypass list, so a shipped release can't be quietly rewritten. | `POST/PUT /repos/{owner}/{repo}/rulesets` |
 | `repo-settings.json` | Squash-merge only, auto-delete head branches after merge, wiki/projects tabs off (we don't use them), release immutability on. | `PATCH /repos/{owner}/{repo}` for everything except `immutable_releases`, which `bootstrap.yml` applies separately via `PUT/DELETE /repos/{owner}/{repo}/immutable-releases` (it's not part of the repo PATCH body). |
-| `actions-permissions.json` | Only GitHub-owned actions, Marketplace-verified actions, and anything under `k-3679/*` (our own reusable workflows) can run. Workflow token defaults to read-only. | `PUT /repos/{owner}/{repo}/actions/permissions` + `.../selected-actions` |
+| `actions-permissions.json` | Only GitHub-owned actions, Marketplace-verified actions, and anything under `k-3679/*` (our own reusable workflows) can run. Workflow token defaults to **read/write**. | `PUT /repos/{owner}/{repo}/actions/permissions` + `.../selected-actions` + `.../workflow` |
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ never provide this (see "Automatic" below).
   here would block merges on a check that may never run.
 - **`actions-permissions.json` allow-lists `k-3679/*`** because every workflow in this template
   calls reusable workflows/actions from `k-3679/reusable-workflows`. Marketplace-verified +
-  GitHub-owned actions cover everything else currently in use (`actions/checkout`, etc.).
+  GitHub-owned actions cover everything else currently in use (`actions/checkout`, etc.). The default permissions for the `GITHUB_TOKEN` are set to **read/write**. This is required by the CI to read the repository content and to push changes when required (CI release workflow, Trivy SARIF scan report upload).
 - **`repo-settings.json` only allows squash-merge** - it's the only strategy that gives both a
   linear `main` (paired with `required_linear_history` in the branch ruleset) and one clean
   commit per PR, with no "wip"/"fix typo" noise from individual commits leaking into history.

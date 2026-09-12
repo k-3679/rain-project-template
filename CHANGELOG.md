@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `repo-settings.json`: `immutable_releases` flag; `bootstrap.yml` applies it via `PUT/DELETE /repos/{owner}/{repo}/immutable-releases` since it's not part of the repo PATCH body.
 - README: step to manually enable the `.github/repo-rules/README.md` prerequisites after running `bootstrap.yml`.
 
+### Changed
+
+- `actions-permissions.json`: `default_workflow_permissions` from `read` to `write`.
+
 ### Fixed
 
 - `validate.yml`: `security` job was missing the `actions: read` permission required by `codeql-action/upload-sarif`, causing the SARIF upload to fail with "Resource not accessible by integration".
