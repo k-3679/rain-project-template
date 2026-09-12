@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/repo-rules/`: JSON definitions for the `main` branch ruleset, `v*` tag ruleset, repo settings, and Actions permissions, plus a README documenting what each does, why, prerequisites (Dependabot/code scanning enablement), and the manual `gh api` fallback.
 - `repo-settings.json`: `immutable_releases` flag; `bootstrap.yml` applies it via `PUT/DELETE /repos/{owner}/{repo}/immutable-releases` since it's not part of the repo PATCH body.
 - README: step to manually enable the `.github/repo-rules/README.md` prerequisites after running `bootstrap.yml`.
+- `validate.yml`: new `codeql` job calling a new `k-3679/reusable-workflows/.github/workflows/codeql-analysis.yml` reusable workflow (converted from GitHub's generated "CodeQL Advanced" template), replacing CodeQL default setup so analysis can be driven from this workflow. Requires default setup to be switched off in Settings -> Code security -> Code scanning first.
+
+### Changed
+
+- `actions-permissions.json`: `default_workflow_permissions` from `read` to `write`.
+- `validate.yml`: `summary` job now prints the Trivy findings count and a direct link to the scan results (PR link, or branch-filtered Security tab link on push), instead of relying on manually switching the branch dropdown on the Code scanning alerts page.
+- `validate.yml`: `changelog` job now skips entirely on Dependabot PRs (`github.actor == 'dependabot[bot]'`) instead of failing the required "Validate changelog" check, since Dependabot never touches `CHANGELOG.md`.
 
 ### Changed
 

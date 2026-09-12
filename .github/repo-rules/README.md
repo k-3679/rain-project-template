@@ -8,7 +8,7 @@ of these automatically on `workflow_dispatch.
 
 | File | What | API it maps to |
 |---|---|---|
-| `branch-ruleset.main.json` | Protects `main`: no deletion, no force-push, linear history, PR + 1 review required, must pass `Security scan` and `Validate changelog`. | `POST/PUT /repos/{owner}/{repo}/rulesets` |
+| `branch-ruleset.main.json` | Protects `main`: no deletion, no force-push (or direct push), linear history, PR + 1 review required, must pass `Security scan` and `Validate changelog`, and must be up to date with the **base branch** when merging via PRs | `POST/PUT /repos/{owner}/{repo}/rulesets` |
 | `tag-ruleset.releases.json` | Protects `v*` tags from being created/moved/deleted by anyone outside the bypass list, so a shipped release can't be quietly rewritten. | `POST/PUT /repos/{owner}/{repo}/rulesets` |
 | `repo-settings.json` | Squash-merge only, auto-delete head branches after merge, wiki/projects tabs off (we don't use them), release immutability on. | `PATCH /repos/{owner}/{repo}` for everything except `immutable_releases`, which `bootstrap.yml` applies separately via `PUT/DELETE /repos/{owner}/{repo}/immutable-releases` (it's not part of the repo PATCH body). |
 | `actions-permissions.json` | Only GitHub-owned actions, Marketplace-verified actions, and anything under `k-3679/*` (our own reusable workflows) can run. Workflow token defaults to **read/write**. | `PUT /repos/{owner}/{repo}/actions/permissions` + `.../selected-actions` + `.../workflow` |

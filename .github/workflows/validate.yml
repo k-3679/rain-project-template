@@ -1,4 +1,4 @@
-name: Validate
+name: Validate Changes
 
 on:
   push:
@@ -32,15 +32,26 @@ jobs:
       rust-path: "."
       c-path: "."
 
-  security:
-    name: Security scan
-    uses: k-3679/reusable-workflows/.github/workflows/security-scan.yml@main
+  # vuln,secrets,misconfigs (Trivy scan)
+  trivy:
+    name: Trivy scan
+    uses: k-3679/reusable-workflows/.github/workflows/trivy.yml@main
     with:
       scan-ref: "."
       fail-threshold-percent: 0
 
+  # sast (CodeQL scan)
+  codeql:
+    name: CodeQL scan
+    uses: k-3679/reusable-workflows/.github/workflows/codeql.yml@main
+    with:
+      # Add more {language, build-mode} entries here as this project picks up other languages.
+      languages: '[{"language":"actions","build-mode":"none"}]'
+
   changelog:
     name: Validate changelog
+    if: github.actor != 'dependabot[bot]'
+    continue-on-error: true
     runs-on: ubuntu-latest
     continue-on-error: true 
     steps:
@@ -66,12 +77,11 @@ jobs:
   summary:
     name: Validation summary
     if: always()
-    needs: [lint, security, changelog]
+    needs: [lint, trivy, codeql, changelog]
     runs-on: ubuntu-latest
     steps:
       - name: Report job results
         env:
-          # Code scanning alerts are branch-scoped; link straight to the ref that was scanned.
           SCAN_LINK: ${{ github.event_name == 'pull_request' && github.event.pull_request.html_url || format('https://github.com/{0}/security/code-scanning?query=ref:{1}', github.repository, github.ref) }}
         run: |
           {
@@ -80,9 +90,9 @@ jobs:
             echo "| Job | Result |"
             echo "| --- | --- |"
             echo "| Lint | ${{ needs.lint.result }} |"
-            echo "| Security scan | ${{ needs.security.result }} |"
+            echo "| Trivy scan | ${{ needs.trivy.result }} |"
+            echo "| CodeQL Scan | ${{ needs.codeql.result }} |"
             echo "| Validate changelog | ${{ needs.changelog.result }} |"
-            echo
-            echo "Trivy findings: **${{ needs.security.outputs.total }}**"
-            echo "[View scan results]($SCAN_LINK)"
+            echo ""
+            echo "🛡️ **Check scan results:** [scan results]($SCAN_LINK)"
           } >> "$GITHUB_STEP_SUMMARY"

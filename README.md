@@ -47,6 +47,7 @@ rather than duplicating logic.
    to whatever languages the project actually uses (e.g. `'["node"]'` in both places).
    It comes empty on purpose so a brand-new repo doesn't start with a failing check for a
    language it doesn't have yet. Set `continue-on-error` to **false** for the `changelog` job.
+   Also update the `codeql` job's `with.languages:` to match the languages you actually use. See [documentation](https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages).
 4. Push to `main` once, then run the **Bootstrap repo settings** workflow
    (`Actions` tab -> `workflow_dispatch`) to apply branch/tag rulesets, merge-strategy
    settings, and the Actions allow-list. See [`.github/repo-rules/README.md`](.github/repo-rules/README.md)
