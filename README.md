@@ -70,6 +70,6 @@ rather than duplicating logic.
   GitHub REST API, and it's safe to reuse.
 - **Be honest about what isn't.** Anything that needs a plan/billing decision, a one-time
   interactive choice, or lives outside a single repo's API surface is documented in
-  `repo-rules/README.md`.
+  `repo-rules/README.md`.  
 - **No lint job runs until it has something to lint.** Avoids the classic template-repo
   failure mode of red CI from the first commit.
