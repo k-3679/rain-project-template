@@ -18,8 +18,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: |
-          gh api --method PATCH "repos/${{ github.repository }}" \
-            --input .github/repo-rules/repo-settings.json
+          jq 'del(.immutable_releases)' .github/repo-rules/repo-settings.json \
+            | gh api --method PATCH "repos/${{ github.repository }}" --input -
+
+      - name: Release immutability
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: |
+          if [ "$(jq -r '.immutable_releases // false' .github/repo-rules/repo-settings.json)" = "true" ]; then
+            gh api --method PUT "repos/${{ github.repository }}/immutable-releases"
+          else
+            gh api --method DELETE "repos/${{ github.repository }}/immutable-releases"
+          fi
 
       - name: Actions permissions (allow-listed actions, read-only default token)
         env:
@@ -70,6 +80,7 @@ jobs:
             echo ""
             echo "Applied automatically:"
             echo "- Repo settings (merge strategy, auto-delete branches, wiki/projects off)"
+            echo "- Release immutability"
             echo "- Actions permissions (allow-listed to GitHub-owned + verified + \`k-3679/*\`)"
             echo "- Branch ruleset on \`main\`"
             echo "- Tag ruleset on \`v*\`"
@@ -77,5 +88,6 @@ jobs:
             echo "Still manual (see \`.github/repo-rules/README.md\`):"
             echo "- GitHub Advanced Security / private code scanning, if this repo is private"
             echo "- Repository visibility"
+            echo "- Limiting how many branches/tags can be updated in a single push (still a Preview setting, no stable API)"
             echo "- Any org-level policy, if this repo ever moves into an org"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -6,5 +6,6 @@
   "squash_merge_commit_title": "PR_TITLE",
   "squash_merge_commit_message": "PR_BODY",
   "has_wiki": false,
-  "has_projects": false
+  "has_projects": true,
+  "immutable_releases": true
 }
