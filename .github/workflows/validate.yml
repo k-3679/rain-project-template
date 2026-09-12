@@ -34,10 +34,6 @@ jobs:
 
   security:
     name: Security scan
-    permissions:
-      contents: read
-      actions: read
-      security-events: write
     uses: k-3679/reusable-workflows/.github/workflows/security-scan.yml@main
     with:
       scan-ref: "."

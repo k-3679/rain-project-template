@@ -79,7 +79,7 @@ jobs:
             echo "### ⚡Bootstrap complete"
             echo ""
             echo "Applied automatically:"
-            echo "- Repo settings (merge strategy, auto-delete branches, wiki/projects off)"
+            echo "- Repo settings (merge strategy, auto-delete branches, projects)"
             echo "- Release immutability"
             echo "- Actions permissions (allow-listed to GitHub-owned + verified + \`k-3679/*\`)"
             echo "- Branch ruleset on \`main\`"
