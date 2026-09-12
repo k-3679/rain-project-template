@@ -34,5 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `branch-ruleset.main.json`: `required_status_checks` for `trivy`/`codeql` were the calling job names (`Trivy scan`, `CodeQL scan`), but reusable workflow calls whose inner job also has a `name:` post checks under `<calling job> / <inner job>` instead; corrected to `Trivy scan / Security scan` and `CodeQL scan / Analyze (actions)`.
 - `README.md`: correctly renders the note (that was nested in **step 6** of `Using this template`) regarding jobs triggered from reusable workflows.
 - `validate.yml`: triggers on push event on all branches. This is required by Trivy to upload the baseline SARIF to the Security tab.
+ 
 
-
+ 
