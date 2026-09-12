@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `validate.yml`: `summary` job now prints the Trivy findings count and a direct link to the scan results (PR link, or branch-filtered Security tab link on push), instead of relying on manually switching the branch dropdown on the Code scanning alerts page.
 - `validate.yml`: `changelog` job now skips entirely on Dependabot PRs (`github.actor == 'dependabot[bot]'`) instead of failing the required "Validate changelog" check, since Dependabot never touches `CHANGELOG.md`.
 
+### Changed
+
+- `actions-permissions.json`: `default_workflow_permissions` from `read` to `write`.
+- `validate.yml`: `summary` job now prints the Trivy findings count and a direct link to the scan results (PR link, or branch-filtered Security tab link on push), instead of relying on manually switching the branch dropdown on the Code scanning alerts page. 
+- `validate.yml`: set `continue-on-error` to true for `changelog` job for testing.
+
 ### Fixed
 
 - `validate.yml`: `security` job was missing the `actions: read` permission required by `codeql-action/upload-sarif`, causing the SARIF upload to fail with "Resource not accessible by integration".
