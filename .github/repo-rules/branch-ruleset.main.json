@@ -34,8 +34,8 @@
       "parameters": {
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
-          { "context": "Trivy scan" },
-          { "context": "CodeQL scan" },
+          { "context": "Trivy scan / Security scan" },
+          { "context": "CodeQL scan / Analyze (actions)" },
           { "context": "Validate changelog" }
         ]
       }

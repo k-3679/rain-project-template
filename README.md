@@ -56,6 +56,13 @@ rather than duplicating logic.
 5. Manually enable the prerequisites listed in [`.github/repo-rules/README.md`](.github/repo-rules/README.md#prerequisites)
    (Dependabot alerts, Dependabot security updates, code scanning, secret scanning) plus
    anything else called out there under "Things that can't be scripted".
+6. If you rename any `validate.yml` job, or change what it calls, update the matching
+   `context` entries in `branch-ruleset.main.json` and re-run `bootstrap.yml`.
+
+   > [!NOTE]
+   > For jobs that call a reusable workflow whose own job also has a `name:`, GitHub posts
+   > the check as `<calling job> / <inner job>`, not just the calling job's name (use the
+   > ruleset's "Add checks" search to find the real context).
 
 ## Design principles
 
