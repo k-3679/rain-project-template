@@ -46,7 +46,7 @@ rather than duplicating logic.
 3. In `.github/workflows/validate.yml`, update the `lint` job's `if:` and `with.linters:`
    to whatever languages the project actually uses (e.g. `'["node"]'` in both places).
    It comes empty on purpose so a brand-new repo doesn't start with a failing check for a
-   language it doesn't have yet.
+   language it doesn't have yet. Set `continue-on-error` to **false** for the `changelog` job.
 4. Push to `main` once, then run the **Bootstrap repo settings** workflow
    (`Actions` tab -> `workflow_dispatch`) to apply branch/tag rulesets, merge-strategy
    settings, and the Actions allow-list. See [`.github/repo-rules/README.md`](.github/repo-rules/README.md)

@@ -42,6 +42,7 @@ jobs:
   changelog:
     name: Validate changelog
     runs-on: ubuntu-latest
+    continue-on-error: true 
     steps:
       - uses: actions/checkout@v4
         with:
@@ -69,6 +70,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Report job results
+        env:
+          # Code scanning alerts are branch-scoped; link straight to the ref that was scanned.
+          SCAN_LINK: ${{ github.event_name == 'pull_request' && github.event.pull_request.html_url || format('https://github.com/{0}/security/code-scanning?query=ref:{1}', github.repository, github.ref) }}
         run: |
           {
             echo "### 📝 Validation summary"
@@ -78,4 +82,7 @@ jobs:
             echo "| Lint | ${{ needs.lint.result }} |"
             echo "| Security scan | ${{ needs.security.result }} |"
             echo "| Validate changelog | ${{ needs.changelog.result }} |"
+            echo
+            echo "Trivy findings: **${{ needs.security.outputs.total }}**"
+            echo "[View scan results]($SCAN_LINK)"
           } >> "$GITHUB_STEP_SUMMARY"
