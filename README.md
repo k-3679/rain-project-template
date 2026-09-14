@@ -4,7 +4,7 @@
 [![Validate Changes](https://github.com/k-3679/rain-project-template/actions/workflows/validate.yml/badge.svg)](https://github.com/k-3679/rain-project-template/actions/workflows/validate.yml)
 [![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-blue)](CHANGELOG.md)
 
-Template repository for new `k-3679` projects. Use it via GitHub's **"Use this template"**
+Template repository for new projects. Use it via GitHub's **"Use this template"**
 button (or `gh repo create --template k-3679/rain-project-template`) instead of starting a
 new repo from scratch.
 
