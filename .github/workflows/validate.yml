@@ -129,8 +129,7 @@ jobs:
 
           {
             echo "### 📝 Validation summary"
-            echo " "
-            echo " "
+            echo ""
             echo "$verdict"
             echo ""
             echo "| Job | Result |"
@@ -139,10 +138,11 @@ jobs:
             echo "| Trivy scan | $TRIVY |"
             echo "| CodeQL scan | $CODEQL |"
             echo "| Validate changelog | $CHANGELOG |"
-            echo " "
-            echo " "
-            echo "- Triggered from $trigger, at \`${HEAD_SHA:0:7}\`, by @${ACTOR}."
-            echo
+            echo ""
+            echo "---"
+            echo ""
+            echo "⚡ Triggered from $trigger, at \`${HEAD_SHA:0:7}\`, by @${ACTOR}."
+            echo ""
             echo "🛡️ **Check scan results:** [scan results]($SCAN_URL)"
           } >> "$GITHUB_STEP_SUMMARY"
 
