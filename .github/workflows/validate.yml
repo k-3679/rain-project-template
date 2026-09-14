@@ -121,15 +121,16 @@ jobs:
           fi
 
           case "$EVENT" in
-            pull_request) trigger="pull request [#${PR_NUMBER}](${PR_URL}) into \`${PR_BASE}\`" ;;
-            push)         trigger="push to \`${REF_NAME}\`" ;;
-            schedule)     trigger="weekly scheduled scan of \`${REF_NAME}\`" ;;
-            *)            trigger="${EVENT} on \`${REF_NAME}\`" ;;
+            pull_request) trigger="**pull request** [#${PR_NUMBER}](${PR_URL}) into \`${PR_BASE}\`" ;;
+            push)         trigger="**push** to \`${REF_NAME}\`" ;;
+            schedule)     trigger="**weekly scheduled scan** of \`${REF_NAME}\`" ;;
+            *)            trigger="**${EVENT}** on \`${REF_NAME}\`" ;;
           esac
 
           {
             echo "### 📝 Validation summary"
-            echo ""
+            echo " "
+            echo " "
             echo "$verdict"
             echo ""
             echo "| Job | Result |"
@@ -138,8 +139,9 @@ jobs:
             echo "| Trivy scan | $TRIVY |"
             echo "| CodeQL scan | $CODEQL |"
             echo "| Validate changelog | $CHANGELOG |"
-            echo ""
-            echo "- Triggered from \`$trigger\`, at \`${HEAD_SHA:0:7}\`, by @${ACTOR}."
+            echo " "
+            echo " "
+            echo "- Triggered from $trigger, at \`${HEAD_SHA:0:7}\`, by @${ACTOR}."
             echo
             echo "🛡️ **Check scan results:** [scan results]($SCAN_URL)"
           } >> "$GITHUB_STEP_SUMMARY"
