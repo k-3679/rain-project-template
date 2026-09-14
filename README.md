@@ -13,25 +13,28 @@ CI, security scanning, branch/tag protection) without copy/pasting it by hand ea
 and without pretending things are automated when they aren't.
 
 ## What you get
-
+ 
 ```
 rain-project-template/
 ├── CHANGELOG.md              # Keep a Changelog, starts at [Unreleased]
 ├── .editorconfig
+├── .gitattributes            # LF normalization
 ├── .gitignore
 └── .github/
     ├── CODEOWNERS
     ├── SECURITY.md
+    ├── SETUP.md               # one-time setup checklist
     ├── PULL_REQUEST_TEMPLATE.md
-    ├── dependabot.yml         # keeps GitHub Actions versions current
+    ├── dependabot.yml         # keeps project dependecies up to date
     ├── ISSUE_TEMPLATE/
     │   ├── config.yml
     │   ├── bug_report.yml
     │   └── feature_request.yml
     ├── workflows/
-    │   ├── validate.yml       # runs on PRs to main: lint (opt-in) + security scan + changelog check
-    │   └── bootstrap.yml      # workflow_dispatch, applies everything under repo-rules/
-    └── repo-rules/            # what bootstrap.yml applies - see its own README
+    │   ├── setup-checklist.yml # workflow_dispatch, one-time run, self-deleting
+    │   ├── validate.yml        # PRs to main: lint (opt-in) + Trivy + CodeQL + changelog
+    │   └── bootstrap.yml       # workflow_dispatch, applies everything under repo-rules/
+    └── repo-rules/            # what bootstrap.yml applies
         ├── README.md
         ├── branch-ruleset.main.json
         ├── tag-ruleset.releases.json
@@ -39,35 +42,22 @@ rain-project-template/
         └── actions-permissions.json
 ```
 
+## Workflows
+ 
+| Workflow | Runs on | What it does |
+| --- | --- | --- |
+| [`setup-checklist.yml`](.github/workflows/setup-checklist.yml) | Manual, once per new repo | Opens [`SETUP.md`](.github/SETUP.md) as an issue, then deletes itself and `SETUP.md`. |
+| [`validate.yml`](.github/workflows/validate.yml) | PRs to `main`, pushes, weekly, manual | Lint (opt-in per language), Trivy, CodeQL, and a changelog check on PRs. The `Validation summary` job needs all of them and is the only required status check, so new linters and CodeQL languages are gated without editing the ruleset. |
+| [`bootstrap.yml`](.github/workflows/bootstrap.yml) | Manual | Applies everything in [`repo-rules/`](.github/repo-rules/) (branch and tag rulesets, repo settings, Actions permissions) over GH REST API. Needs an `ADMIN_TOKEN` secret. Every step is an upsert, so it is safe to re-run. |
+ 
 All CI here calls into [`k-3679/reusable-workflows`](https://github.com/k-3679/reusable-workflows)
 rather than duplicating logic.
 
 ## Using this template
 
-1. Create the new repo from this template on GitHub.
-2. Clone it, replace this README, update `CHANGELOG.md`'s project name if you keep the
-   Keep a Changelog header.
-3. In `.github/workflows/validate.yml`, update the `lint` job's `if:` and `with.linters:`
-   to whatever languages the project actually uses (e.g. `'["node"]'` in both places).
-   It comes empty on purpose so a brand-new repo doesn't start with a failing check for a
-   language it doesn't have yet. Set `continue-on-error` to **false** for the `changelog` job.
-   Also update the `codeql` job's `with.languages:` to match the languages you actually use. See [documentation](https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages).
-4. Push to `main` once, then run the **Bootstrap repo settings** workflow
-   (`Actions` tab -> `workflow_dispatch`) to apply branch/tag rulesets, merge-strategy
-   settings, and the Actions allow-list. See [`.github/repo-rules/README.md`](.github/repo-rules/README.md)
-   for exactly what it does, why, and the handful of things (like GHAS licensing on
-   private repos) that genuinely can't be scripted and need a manual decision.
-5. Manually enable the prerequisites listed in [`.github/repo-rules/README.md`](.github/repo-rules/README.md#prerequisites)
-   (Dependabot alerts, Dependabot security updates, code scanning, secret scanning) plus
-   anything else called out there under "Things that can't be scripted".
-6. If you rename any `validate.yml` job, or change what it calls, update the matching
-   `context` entries in `branch-ruleset.main.json` and re-run `bootstrap.yml`.
-7. Run `validate.yml` manually once on **main** to generate code scanning tools base configs (CodeQL, Trivy).
-
-> [!NOTE]
-> For jobs that call a reusable workflow whose own job also has a `name:`, GitHub posts
-> the check as `<calling job> / <inner job>`, not just the calling job's name (use the
-> ruleset's "Add checks" search to find the real context).
+1. Create the new repo from this template on GitHub (GitHub's **"Use this template"** button).
+2. Actions tab → run **Setup checklist**. The workflow opens a **"📝 Repo setup checklist"** issue with the
+   full checklist of one time required manual setups. Work through the issue, mark your finished tasks, and close the issue when done.
 
 ## Design principles
 

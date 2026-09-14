@@ -8,9 +8,9 @@ of these automatically on `workflow_dispatch.
 
 | File | What | API it maps to |
 |---|---|---|
-| `branch-ruleset.main.json` | Protects `main`: no deletion, no force-push (or direct push), linear history, PR + 1 review required, must pass `Security scan` and `Validate changelog`, and must be up to date with the **base branch** when merging via PRs | `POST/PUT /repos/{owner}/{repo}/rulesets` |
+| `branch-ruleset.main.json` | Protects `main`: no deletion, no force-push (or direct push), linear history, PR + 1 review required, must pass `Trivy scan`, `CodeQL scan`, and `Validate changelog`, and must be up to date with the **base branch** when merging via PRs | `POST/PUT /repos/{owner}/{repo}/rulesets` |
 | `tag-ruleset.releases.json` | Protects `v*` tags from being created/moved/deleted by anyone outside the bypass list, so a shipped release can't be quietly rewritten. | `POST/PUT /repos/{owner}/{repo}/rulesets` |
-| `repo-settings.json` | Squash-merge only, auto-delete head branches after merge, wiki/projects tabs off (we don't use them), release immutability on. | `PATCH /repos/{owner}/{repo}` for everything except `immutable_releases`, which `bootstrap.yml` applies separately via `PUT/DELETE /repos/{owner}/{repo}/immutable-releases` (it's not part of the repo PATCH body). |
+| `repo-settings.json` | Squash-merge only, auto-delete head branches after merge, projects enabled, release immutability on. | `PATCH /repos/{owner}/{repo}` for everything except `immutable_releases`, which `bootstrap.yml` applies separately via `PUT/DELETE /repos/{owner}/{repo}/immutable-releases` (it's not part of the repo PATCH body). |
 | `actions-permissions.json` | Only GitHub-owned actions, Marketplace-verified actions, and anything under `k-3679/*` (our own reusable workflows) can run. Workflow token defaults to **read/write**. | `PUT /repos/{owner}/{repo}/actions/permissions` + `.../selected-actions` + `.../workflow` |
 
 ## Prerequisites
@@ -39,12 +39,12 @@ never provide this (see "Automatic" below).
 - **Rulesets over classic branch protection** - rulesets are the current GitHub mechanism,
   are fully API-driven (create/update/delete via REST), and support named bypass actors
   instead of an all-or-nothing admin override.
-- **`required_status_checks` only lists `Security scan` and `Validate changelog`**, not lint.
+- **`required_status_checks` only lists `Trivy scan`, `CodeQL scan`, and `Validate changelog`**, not lint.
   lint jobs are opt-in per-project (see `.github/workflows/validate.yml`), so requiring them
   here would block merges on a check that may never run.
 - **`actions-permissions.json` allow-lists `k-3679/*`** because every workflow in this template
   calls reusable workflows/actions from `k-3679/reusable-workflows`. Marketplace-verified +
-  GitHub-owned actions cover everything else currently in use (`actions/checkout`, etc.). The default permissions for the `GITHUB_TOKEN` are set to **read/write**. This is required by the CI to read the repository content and to push changes when required (CI release workflow, Trivy SARIF scan report upload).
+  GitHub-owned actions cover everything else currently in use (`actions/checkout`, etc.). The default permission for the `GITHUB_TOKEN` is set to **read**. For writing, you need to specify the permissions at the workflow level (CI release workflow, Trivy/CodeQL SARIF scan report upload, setting up GH pages, etc).
 - **`repo-settings.json` only allows squash-merge** - it's the only strategy that gives both a
   linear `main` (paired with `required_linear_history` in the branch ruleset) and one clean
   commit per PR, with no "wip"/"fix typo" noise from individual commits leaking into history.

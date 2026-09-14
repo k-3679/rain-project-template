@@ -5,11 +5,13 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday at 06:00 AM
   workflow_dispatch:
 
 concurrency:
   group: validate-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
 
 env:
   CHANGELOG_FILE: CHANGELOG.md
@@ -18,6 +20,8 @@ jobs:
   lint:
     name: Lint
     if: fromJSON('[]')[0] != null
+    permissions:
+      contents: read
     uses: k-3679/reusable-workflows/.github/workflows/lint.yml@main
     with:
       linters: '[]'
@@ -33,6 +37,10 @@ jobs:
   # vuln,secrets,misconfigs (Trivy scan)
   trivy:
     name: Trivy scan
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     uses: k-3679/reusable-workflows/.github/workflows/trivy.yml@main
     with:
       scan-ref: "."
@@ -41,6 +49,11 @@ jobs:
   # sast (CodeQL scan)
   codeql:
     name: CodeQL scan
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+      security-events: write
     uses: k-3679/reusable-workflows/.github/workflows/codeql.yml@main
     with:
       # Add more {language, build-mode} entries here as this project picks up other languages.
@@ -48,9 +61,11 @@ jobs:
 
   changelog:
     name: Validate changelog
-    if: github.actor != 'dependabot[bot]'
-    continue-on-error: true
+    if: github.actor != 'dependabot[bot]' && github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -75,21 +90,63 @@ jobs:
     name: Validation summary
     if: always()
     needs: [lint, trivy, codeql, changelog]
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Report job results
         env:
-          SCAN_LINK: ${{ github.event_name == 'pull_request' && format('https://github.com/{0}/security/code-scanning?query=pr:{1}', github.repository, github.event.pull_request.number) || format('https://github.com/{0}/security/code-scanning?query=ref:{1}', github.repository, github.ref) }}
+          LINT: ${{ needs.lint.result }}
+          TRIVY: ${{ needs.trivy.result }}
+          CODEQL: ${{ needs.codeql.result }}
+          CHANGELOG: ${{ needs.changelog.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SCAN_URL: ${{ github.event_name == 'pull_request' && format('{0}/{1}/security/code-scanning?query=pr:{2}', github.server_url, github.repository, github.event.pull_request.number) || format('{0}/{1}/security/code-scanning?query=ref:{2}', github.server_url, github.repository, github.ref) }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          EVENT: ${{ github.event_name || "N/A" }}
+          REF_NAME: ${{ github.ref_name || "N/A" }}
+          ACTOR: ${{ github.actor || "N/A" }}
+          PR_NUMBER: ${{ github.event.pull_request.number || "N/A" }}
+          PR_URL: ${{ github.event.pull_request.html_url || "N/A" }}
+          PR_BASE: ${{ github.event.pull_request.base.ref | "N/A" }}
         run: |
+          set -euo pipefail
+
+          if printf '%s\n' "$LINT" "$TRIVY" "$CODEQL" "$CHANGELOG" \
+            | grep -qE '^(failure|cancelled)$'; then
+            verdict="❌ **Validation failed.** Open the failing job below for the details."
+          else
+            verdict="✅ **Validation passed.**"
+          fi
+
+          case "$EVENT" in
+            pull_request) trigger="pull request [#${PR_NUMBER}](${PR_URL}) into \`${PR_BASE}\`" ;;
+            push)         trigger="push to \`${REF_NAME}\`" ;;
+            schedule)     trigger="weekly scheduled scan of \`${REF_NAME}\`" ;;
+            *)            trigger="${EVENT} on \`${REF_NAME}\`" ;;
+          esac
+
           {
             echo "### 📝 Validation summary"
             echo
+            echo "$verdict"
+            echo
             echo "| Job | Result |"
             echo "| --- | --- |"
-            echo "| Lint | ${{ needs.lint.result }} |"
-            echo "| Trivy scan | ${{ needs.trivy.result }} |"
-            echo "| CodeQL scan | ${{ needs.codeql.result }} |"
-            echo "| Validate changelog | ${{ needs.changelog.result }} |"
-            echo ""
-            echo "🛡️ **Check scan results:** [scan results]($SCAN_LINK)"
+            echo "| Lint | $LINT |"
+            echo "| Trivy scan | $TRIVY |"
+            echo "| CodeQL scan | $CODEQL |"
+            echo "| Validate changelog | $CHANGELOG |"
+            echo
+            echo "Triggered from $trigger, at \`${HEAD_SHA:0:7}\`, by @${ACTOR}."
+            echo
+            echo "🛡️ **Check scan results:** [scan results]($SCAN_URL)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if any job failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "::error::One or more validation jobs failed, see the summary table."
+          exit 1
+
