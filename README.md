@@ -8,7 +8,7 @@ Template repository for new projects. Use it via GitHub's **"Use this template"*
 button (or `gh repo create --template k-3679/rain-project-template`) instead of starting a
 new repo from scratch.
 
-**Goal:** every repo created from this starts with the same baseline hygiene (changelog,
+- **Goal:** every repo created from this starts with the same baseline hygiene (changelog,
 CI, security scanning, branch/tag protection) without copy/pasting it by hand each time,
 and without pretending things are automated when they aren't.
 
