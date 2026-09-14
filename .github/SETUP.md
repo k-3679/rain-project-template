@@ -53,7 +53,7 @@ That push runs the [**Validate Changes**](./workflows/validate.yml) workflow and
 - [ ] Close this issue when done.
 
 > [!NOTE]
-> Any changes you make to `./repo-rules/*.json` afterward will require a rerun of **Bootstrap repo settings** to apply.
+> Any changes you make to `./repo-rules/*.json` afterwards will require a rerun of **Bootstrap repo settings** to apply.
 
 ## Adding a required check later
  
