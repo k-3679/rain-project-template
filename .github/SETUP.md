@@ -77,5 +77,5 @@ Nothing in `branch-ruleset.main.json` changes and bootstrap does not need re-run
 > [!WARNING]
 > For jobs that call a reusable workflow whose own job also has a `name:`, GitHub posts
 > the check as `<calling job> / <inner job>`, not just the calling job's name. Use the
-> "Add checks" search from the ruleset's page (settings → Rulesets -> Require status checks to pass -> Add checks) to find the real context.
+> "Add checks" search from the ruleset's page (settings → Rulesets → Require status checks to pass → Add checks) to find the real context.
 
