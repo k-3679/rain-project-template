@@ -2,6 +2,8 @@ name: Validate Changes
 
 on:
   push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
