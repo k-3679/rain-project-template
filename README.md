@@ -12,6 +12,23 @@ new repo from scratch.
 CI, security scanning, branch/tag protection) without copy/pasting it by hand each time,
 and without pretending things are automated when they aren't.
 
+## Branching & release flow
+
+This template is built around **GitHub Flow**: `main` is always deployable, every change
+lands through a short-lived branch and a PR, no `develop` branch, no long-lived release
+branches.
+
+- Branch off `main`, commit, open a PR.
+- PR needs 1 approval, resolved review threads, and a passing `Validation summary` check
+  before it can merge (`branch-ruleset.main.json`).
+- **Squash merge only:** one commit per PR, linear `main` history, one changelog entry (`Unreleased`) to
+  match the squashed commit (`repo-settings.json`). Every merged commit in `main` is a ready to release (revertible) feature.
+- Feature branch is deleted automatically on merge.
+- Tag a release straight off `main`, manually or via a release workflow (recommended).    `tag-ruleset.releases.json` locks that tag from being moved or deleted afterwards.
+
+ See [`.github/repo-rules/README.md`](.github/repo-rules/README.md#why) for the full reasoning
+behind each rule this enforces.
+
 ## What you get
  
 ```
@@ -58,6 +75,7 @@ rather than duplicating logic.
 1. Create the new repo from this template on GitHub (GitHub's **"Use this template"** button).
 2. Actions tab → run **Setup checklist**. The workflow opens a **"📝 Repo setup checklist"** issue with the
    full checklist of one time required manual setups. Work through the issue, mark your finished tasks, and close the issue when done.
+
 
 ## Design principles
 
