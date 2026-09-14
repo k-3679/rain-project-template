@@ -7,6 +7,13 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 
+## Environment files and keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
 ## Node
 node_modules/
 npm-debug.log*
@@ -20,7 +27,23 @@ venv/
 ## PHP
 vendor/
 
+## Go
+*.exe
+*.test
+*.out
+
+## Rust
+**/*.rs.bk
+
+## C
+*.o
+*.a
+*.so
+*.d
+
 ## Build output
 dist/
 build/
+target/
 *.log
+

@@ -17,5 +17,11 @@ indent_size = 4
 [*.php]
 indent_size = 4
 
+[*.go]
+indent_style = tab
+
+[*.{rs,c,h}]
+indent_size = 4
+
 [Makefile]
 indent_style = tab
