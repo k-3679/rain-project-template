@@ -13,7 +13,7 @@ CI, security scanning, branch/tag protection) without copy/pasting it by hand ea
 and without pretending things are automated when they aren't.
 
 ## Template structure
-
+ 
 ```
 rain-project-template/
 ├── CHANGELOG.md                 # Keep a Changelog, starts at [Unreleased]
