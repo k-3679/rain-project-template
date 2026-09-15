@@ -8,26 +8,50 @@ on:
     branches:
       - main
   schedule:
-    - cron: "0 6 * * 1" # Every Monday at 06:00 AM
+    - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
   workflow_dispatch:
 
+# Cancels stale runs so only the latest commit needs to run and pass the required PR checks to merge.
 concurrency:
   group: validate-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'pull_request' && github.event_name != 'workflow_dispatch' }}
+  cancel-in-progress: true
+
 
 env:
   CHANGELOG_FILE: CHANGELOG.md
 
 jobs:
+  check-init:
+    name: Check repo is initialized
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: check
+        env:
+          IS_TEMPLATE: ${{ github.event.repository.is_template }}
+        run: |
+          set -euo pipefail
+          if [ "$IS_TEMPLATE" = "true" ] || [ ! -f .github/workflows/initialize-repo.yml ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Repo initialization has not finished, skipping validation."
+          fi
+
   lint:
     name: Lint
-    if: fromJSON('[]')[0] != null
+    needs: check-init
+    if: needs.check-init.outputs.ready == 'true' && fromJSON('[]')[0] != null
     permissions:
       contents: read
     uses: k-3679/reusable-workflows/.github/workflows/lint.yml@main
     with:
       linters: '[]'
-      # Adjust these if your language sources don't live at the repo root.
       php-path: "."
       python-path: "."
       eslint-config: ".eslintrc.json"
@@ -36,9 +60,10 @@ jobs:
       rust-path: "."
       c-path: "."
 
-  # vuln,secrets,misconfigs (Trivy scan)
   trivy:
     name: Trivy scan
+    needs: check-init
+    if: needs.check-init.outputs.ready == 'true'
     permissions:
       contents: read
       actions: read
@@ -48,9 +73,10 @@ jobs:
       scan-ref: "."
       fail-threshold-percent: 0
 
-  # sast (CodeQL scan)
   codeql:
     name: CodeQL scan
+    needs: check-init
+    if: needs.check-init.outputs.ready == 'true'
     permissions:
       contents: read
       actions: read
@@ -58,12 +84,12 @@ jobs:
       security-events: write
     uses: k-3679/reusable-workflows/.github/workflows/codeql.yml@main
     with:
-      # Add more {language, build-mode} entries here as this project picks up other languages.
       languages: '[{"language":"actions","build-mode":"none"}]'
 
   changelog:
     name: Validate changelog
-    if: github.actor != 'dependabot[bot]' && github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
+    needs: check-init
+    if: needs.check-init.outputs.ready == 'true' && github.actor != 'dependabot[bot]' && github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -73,14 +99,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Checks the changelog was genuinely updated by whatever triggered this workflow.
       - uses: k-3679/reusable-workflows/.github/actions/validate-changelog@main
         with:
           changelog-file: ${{ env.CHANGELOG_FILE }}
           base-sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           default-branch: main
 
-      # Blocks merging into main while [Unreleased] still has pending entries.
       - name: Check unreleased changes on main
         if: github.event_name == 'pull_request'
         uses: k-3679/reusable-workflows/.github/actions/check-unreleased-changelog@main
@@ -91,7 +115,7 @@ jobs:
   summary:
     name: Validation summary
     if: always()
-    needs: [lint, trivy, codeql, changelog]
+    needs: [check-init, lint, trivy, codeql, changelog]
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -99,6 +123,7 @@ jobs:
     steps:
       - name: Report job results
         env:
+          READY: ${{ needs.check-init.outputs.ready }}
           LINT: ${{ needs.lint.result }}
           TRIVY: ${{ needs.trivy.result }}
           CODEQL: ${{ needs.codeql.result }}
@@ -115,7 +140,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          if printf '%s\n' "$LINT" "$TRIVY" "$CODEQL" "$CHANGELOG" \
+          if [ "$READY" != "true" ]; then
+            verdict="⏭️ **Skipped.** Repo initialization has not finished, see the setup checklist issue."
+          elif printf '%s\n' "$LINT" "$TRIVY" "$CODEQL" "$CHANGELOG" \
             | grep -qE '^(failure|cancelled)$'; then
             verdict="❌ **Validation failed.** Open the failing job below for the details."
           else
@@ -153,4 +180,3 @@ jobs:
         run: |
           echo "::error::One or more validation jobs failed, see the summary table."
           exit 1
-

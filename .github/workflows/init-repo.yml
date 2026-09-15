@@ -1,0 +1,81 @@
+name: Initialize repository
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  initialize:
+    name: Initialize repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REMOVED_FILES: >-
+        .github/workflows/init-repo.yml
+        .github/scripts
+        .github/SETUP.md
+    steps:
+      - name: Abort runs on the template repo
+        if: ${{ github.event.repository.is_template }}
+        run: |
+          echo "::error::Initialize repository runs on repos created FROM this template, not on the template itself. Create a repo with \"Use this template\", then run it there."
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Open the setup issue
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          url=$(gh issue create \
+            --title "📝 Repo setup checklist" \
+            --body-file .github/SETUP.md | tail -n1)
+          echo "issue-url=$url" >> "$GITHUB_OUTPUT"
+          echo "Opened $url"
+
+      - name: Seed project files
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+          REPO_DESC: ${{ github.event.repository.description || '' }}
+          OWNER: ${{ github.repository_owner }}
+          ISSUE_URL: ${{ steps.issue.outputs.issue-url }}
+        run: |
+          set -euo pipefail
+          scripts_dir=$(tr ' ' '\n' <<< "$REMOVED_FILES" | grep '/scripts$')
+          python3 "$scripts_dir/seed-repo.py"
+
+      - name: Commit and remove the setup files
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm -rq $REMOVED_FILES
+          git add .
+          git commit -m "chore: initialize repo from rain-project-template"
+          git push
+
+      - name: Summary
+        if: success() && steps.issue.outputs.issue-url != ''
+        env:
+          ISSUE_URL: ${{ steps.issue.outputs.issue-url }}
+        run: |
+          {
+            echo "### ⚡ Repository initialized"
+            echo ""
+            echo "Seeded \`README.md\`, \`.github/CODEOWNERS\` and \`CHANGELOG.md\`, then removed:"
+            echo ""
+            for f in $REMOVED_FILES; do
+              echo "- \`$f\`"
+            done
+            echo ""
+            echo "Open the [**📝 Repo setup checklist**]($ISSUE_URL) issue and follow the provided instructions."
+          } >> "$GITHUB_STEP_SUMMARY"
