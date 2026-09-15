@@ -1,16 +1,13 @@
-name: Bootstrap repo settings
-
-# Run this once after creating a repo from this template. Safe to re-run any timee, every step
-# is an upsert against the files in .github/repo-rules/. See that folder's README
-# for what each file does and what this workflow can't do for you.
+name: Apply repo rules
 
 on:
   workflow_dispatch: {}
 
 jobs:
-  bootstrap:
+  apply:
     name: Apply repo-rules
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
 
@@ -76,7 +73,7 @@ jobs:
       - name: Summary
         run: |
           {
-            echo "### ⚡Bootstrap complete"
+            echo "### 📜 Repo rules applied"
             echo ""
             echo "Applied automatically:"
             echo "- Repo settings (merge strategy, auto-delete branches, projects)"
