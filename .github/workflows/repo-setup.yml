@@ -1,0 +1,228 @@
+name: Setup repo
+
+on:
+  workflow_dispatch:
+    inputs:
+      python:
+        description: "Python (lint + CodeQL + pip Dependabot)"
+        type: boolean
+        default: false
+      node:
+        description: "Node/JS-TS (lint + CodeQL + npm Dependabot)"
+        type: boolean
+        default: false
+      go:
+        description: "Go (lint + CodeQL + gomod Dependabot)"
+        type: boolean
+        default: false
+      rust:
+        description: "Rust (lint + CodeQL + cargo Dependabot)"
+        type: boolean
+        default: false
+      c:
+        description: "C/C++ (lint + CodeQL, no Dependabot ecosystem)"
+        type: boolean
+        default: false
+
+# One setup run at a time
+concurrency:
+  group: repo-setup
+
+permissions:
+  contents: read
+
+env:
+  BUILD_LIST: .github/scripts/build-languages.sh
+  WRITE_VALIDATE: .github/scripts/write-validate.py
+  WRITE_DEPENDABOT: .github/scripts/write-dependabot.py
+  VALIDATE_WORKFLOW: .github/workflows/validate.yml
+  DEPENDABOT: .github/dependabot.yml
+
+jobs:
+  wire-languages:
+    name: Wire up languages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Skip if already wired up
+        id: guard
+        run: |
+          set -euo pipefail
+          if grep -qF "linters: '[]'" "$VALIDATE_WORKFLOW"; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$VALIDATE_WORKFLOW is already wired up, nothing to do. Edit $VALIDATE_WORKFLOW and .github/dependabot.yml by hand if you need to change languages later."
+          fi
+
+      - name: Build language lists
+        if: steps.guard.outputs.configured == 'false'
+        id: languages
+        env:
+          PYTHON: ${{ inputs.python }}
+          NODE: ${{ inputs.node }}
+          GO: ${{ inputs.go }}
+          RUST: ${{ inputs.rust }}
+          C: ${{ inputs.c }}
+        run: bash $BUILD_LIST
+
+      - name: Wire validate.yml
+        if: steps.guard.outputs.configured == 'false'
+        env:
+          LINTERS_JSON: ${{ steps.languages.outputs.linters-json }}
+          CODEQL_JSON: ${{ steps.languages.outputs.codeql-json }}
+        run: python3 $WRITE_VALIDATE
+
+      - name: Wire dependabot.yml
+        if: steps.guard.outputs.configured == 'false'
+        env:
+          ECOSYSTEMS: ${{ steps.languages.outputs.dependabot-ecosystems }}
+        run: python3 $WRITE_DEPENDABOT
+
+      - name: Commit and push
+        if: steps.guard.outputs.configured == 'false'
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm -rq $BUILD_LIST $WRITE_VALIDATE $WRITE_DEPENDABOT
+          git add "$VALIDATE_WORKFLOW" "$DEPENDABOT"
+          git commit -m "chore: configure languages in $VALIDATE_WORKFLOW and $DEPENDABOT"
+          git push
+
+      - name: Summary
+        if: always()
+        env:
+          CONFIGURED: ${{ steps.guard.outputs.configured }}
+          LINTERS_JSON: ${{ steps.languages.outputs.linters-json }}
+          CODEQL_JSON: ${{ steps.languages.outputs.codeql-json }}
+          ECOSYSTEMS: ${{ steps.languages.outputs.dependabot-ecosystems }}
+        run: |
+          {
+            echo "### 🧩 Language wiring"
+            echo ""
+            if [ "$CONFIGURED" = "true" ]; then
+              echo "Already wired up, skipped (safe to re-run)."
+            else
+              echo "- Lint: \`$LINTERS_JSON\`"
+              echo "- CodeQL: \`$CODEQL_JSON\`"
+              echo "- Dependabot ecosystems enabled: \`${ECOSYSTEMS:-none}\`"
+              echo ""
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apply-rules:
+    name: Apply repo-rules
+    needs: wire-languages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Repo settings
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          REPO_SETTINGS: .github/repo-rules/repo-settings.json
+        run: |
+          jq 'del(.immutable_releases)' "$REPO_SETTINGS" \
+            | gh api --method PATCH "repos/${{ github.repository }}" --input -
+
+      - name: Security settings
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          SECURITY_SETTINGS: .github/repo-rules/security-settings.json
+        run: |
+
+          if [ "$(jq -r '.vulnerability_alerts' "$SECURITY_SETTINGS")" = "true" ]; then
+            gh api --method PUT "repos/${{ github.repository }}/vulnerability-alerts" \
+              || echo "::warning::Couldn't enable Dependabot alerts."
+          fi
+
+          if [ "$(jq -r '.automated_security_fixes' "$SECURITY_SETTINGS")" = "true" ]; then
+            gh api --method PUT "repos/${{ github.repository }}/automated-security-fixes" \
+              || echo "::warning::Couldn't enable Dependabot security updates."
+          fi
+
+          jq '{security_and_analysis}' "$SECURITY_SETTINGS" \
+            | gh api --method PATCH "repos/${{ github.repository }}" --input - \
+            || echo "::warning::Couldn't update code scanning / secret scanning (needs GitHub Advanced Security available on this repo's plan)."
+
+      - name: Release immutability
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          REPO_SETTINGS: .github/repo-rules/repo-settings.json
+        run: |
+          if [ "$(jq -r '.immutable_releases // false' "$REPO_SETTINGS")" = "true" ]; then
+            gh api --method PUT "repos/${{ github.repository }}/immutable-releases"
+          else
+            gh api --method DELETE "repos/${{ github.repository }}/immutable-releases"
+          fi
+
+      - name: Actions permissions
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          ACTIONS_PERMISSIONS: .github/repo-rules/actions-permissions.json
+        run: |
+          jq '{enabled: .permissions.enabled, allowed_actions: .permissions.allowed_actions}' \
+            "$ACTIONS_PERMISSIONS" \
+            | gh api --method PUT "repos/${{ github.repository }}/actions/permissions" --input -
+
+          jq '.selected_actions' "$ACTIONS_PERMISSIONS" \
+            | gh api --method PUT "repos/${{ github.repository }}/actions/permissions/selected-actions" --input -
+
+          jq '{default_workflow_permissions, can_approve_pull_request_reviews}' \
+            "$ACTIONS_PERMISSIONS" \
+            | gh api --method PUT "repos/${{ github.repository }}/actions/permissions/workflow" --input -
+
+      - name: Branch and Tag Rulesets
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          apply_ruleset () {
+            local file="$1"
+            local name
+            name=$(jq -r '.name' "$file")
+
+            local existing_id
+            existing_id=$(gh api "repos/${{ github.repository }}/rulesets?includes_parents=false" \
+              --jq ".[] | select(.name == \"$name\") | .id" || true)
+
+            if [ -n "$existing_id" ]; then
+              echo "Updating existing ruleset '$name' (id: $existing_id)"
+              gh api --method PUT "repos/${{ github.repository }}/rulesets/$existing_id" --input "$file"
+            else
+              echo "Creating ruleset '$name'"
+              gh api --method POST "repos/${{ github.repository }}/rulesets" --input "$file"
+            fi
+          }
+
+          apply_ruleset .github/repo-rules/branch-ruleset.main.json
+          apply_ruleset .github/repo-rules/tag-ruleset.releases.json
+
+      - name: Summary
+        run: |
+          {
+            echo "### 📜 Repo rules applied"
+            echo ""
+            echo "Applied automatically:"
+            echo "- Repo settings (merge strategy, auto-delete branches, projects)"
+            echo "- Release immutability"
+            echo "- Security settings (Dependabot alerts + security updates, secret scanning, code scanning) — see warnings above if any didn't take"
+            echo "- Actions permissions (allow-listed to GitHub-owned + verified + \`k-3679/*\`)"
+            echo "- Branch ruleset on \`main\`"
+            echo "- Tag ruleset on \`v*\`"
+            echo ""
+            echo "Still manual (see \`.github/repo-rules/README.md\`):"
+            echo "- GitHub Advanced Security requires a paid plan on private repos — the toggle above only takes effect once that's available"
+            echo "- Repository visibility"
+            echo "- Limiting how many branches/tags can be updated in a single push"
+            echo "- Any org-level policy, if this repo ever moves into an org"
+          } >> "$GITHUB_STEP_SUMMARY"

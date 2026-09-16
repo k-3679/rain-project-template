@@ -1,4 +1,4 @@
-name: Initialize repository
+name: Initialize repo from template
 
 on:
   push:
@@ -11,13 +11,13 @@ permissions:
 
 jobs:
   initialize:
-    name: Initialize repository
+    name: Initialize repo from template
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       REMOVED_FILES: >-
-        .github/workflows/init-repo.yml
-        .github/scripts
+        .github/workflows/template-init.yml
+        .github/scripts/seed-repo.py
         .github/SETUP.md
     steps:
       - name: Abort runs on the template repo
@@ -50,8 +50,8 @@ jobs:
           ISSUE_URL: ${{ steps.issue.outputs.issue-url }}
         run: |
           set -euo pipefail
-          scripts_dir=$(tr ' ' '\n' <<< "$REMOVED_FILES" | grep '/scripts$')
-          python3 "$scripts_dir/seed-repo.py"
+          script=$(tr ' ' '\n' <<< "$REMOVED_FILES" | grep '/seed-repo\.py$')
+          python3 "$script"
 
       - name: Commit and remove the setup files
         run: |
@@ -60,7 +60,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git rm -rq $REMOVED_FILES
           git add .
-          git commit -m "chore: initialize repo from rain-project-template"
+          git commit -m "chore: initialize repo from template"
           git push
 
       - name: Summary

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Seed a repo created from rain-project-template.
-
-Rewrites README.md, .github/CODEOWNERS and CHANGELOG.md with this repo's own
-values. Run once by .github/workflows/initialize-repo.yml, which then deletes
-this script along with itself.
+"""Rewrites README.md, .github/CODEOWNERS and CHANGELOG.md with this repo's values.
 """
 
 import os
@@ -13,8 +9,8 @@ import sys
 
 
 REMOVED = (
-    ".github/workflows/init-repo.yml",
-    ".github/scripts/",
+    ".github/workflows/template-init.yml",
+    ".github/scripts/seed-repo.py",
     ".github/SETUP.md",
 )
 
@@ -39,7 +35,7 @@ reasoning behind each rule this enforces.
 """
 
 
-# Every tracked path, minus the ones being deleted in this same commit
+# Every tracked path, minus the ones being deleted in this commit
 def tracked_files():
     try:
         out = subprocess.run(
@@ -91,8 +87,8 @@ def architecture(name):
 def badges(owner, name):
     base = f"https://github.com/{owner}/{name}"
     return (
-        f"[![Apply repo rules]({base}/actions/workflows/apply-repo-rules.yml/badge.svg)]"
-        f"({base}/actions/workflows/apply-repo-rules.yml)\n"
+        f"[![Setup repo]({base}/actions/workflows/repo-setup.yml/badge.svg)]"
+        f"({base}/actions/workflows/repo-setup.yml)\n"
         f"[![Validate Changes]({base}/actions/workflows/validate.yml/badge.svg)]"
         f"({base}/actions/workflows/validate.yml)\n"
         f"[![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-blue)](CHANGELOG.md)\n"

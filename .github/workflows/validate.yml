@@ -34,9 +34,10 @@ jobs:
       - id: check
         env:
           IS_TEMPLATE: ${{ github.event.repository.is_template }}
+          INIT_WORKFLOW: .github/workflows/template-init.yml
         run: |
           set -euo pipefail
-          if [ "$IS_TEMPLATE" = "true" ] || [ ! -f .github/workflows/initialize-repo.yml ]; then
+          if [ "$IS_TEMPLATE" = "true" ] || [ ! -f "$INIT_WORKFLOW" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
@@ -60,6 +61,7 @@ jobs:
       rust-path: "."
       c-path: "."
 
+  # vuln,secrets,misconfigs
   trivy:
     name: Trivy scan
     needs: check-init
@@ -73,6 +75,7 @@ jobs:
       scan-ref: "."
       fail-threshold-percent: 0
 
+  # sast
   codeql:
     name: CodeQL scan
     needs: check-init
