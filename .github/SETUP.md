@@ -50,8 +50,7 @@ Nothing in `branch-ruleset.main.json` changes and **Setup repo** does not need r
 - [ ] Add the job name as a context in `required_status_checks` in [`branch-ruleset.main.json`](/.github/repo-rules/branch-ruleset.main.json).
 - [ ] Actions tab → re-run **Setup repo** (it will skip the `wire-languages` job and re-apply `apply-rules`).
 
-> [!NOTE]
-> For jobs that call a reusable workflow whose own job also has a `name:`, GitHub posts
-> the check as `<calling job> / <inner job>`, not just the calling job's name.
+> **💡 Note:** For jobs that call a reusable workflow whose own job also has a `name:`, GitHub
+> posts the check as `<calling job> / <inner job>`, not just the calling job's name.
 
 </details>

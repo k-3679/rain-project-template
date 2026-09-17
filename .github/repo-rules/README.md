@@ -32,7 +32,7 @@ You need a token with admin rights on the repo. Either `gh auth login` for the m
   extra re-approval even when a different reviewer pushes a trivial fixup.
 
    <details>
-    <summary><b>decision flow diagram</b></summary>
+    <summary><b>🔶 Decision flow diagram</b></summary>
 
     ```mermaid
     flowchart TD
@@ -61,7 +61,6 @@ You need a token with admin rights on the repo. Either `gh auth login` for the m
     ```
 
     </details>
-    <br>
 
 - **`actions-permissions.json` allow-lists `k-3679/*`** because every workflow in this template
   calls reusable workflows/actions from `k-3679/reusable-workflows`. Marketplace-verified +
