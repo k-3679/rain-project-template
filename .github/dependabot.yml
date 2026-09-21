@@ -1,6 +1,5 @@
 version: 2
 updates:
-  # Keep GitHub Actions pinned versions (actions/checkout@v4, etc.) current.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -19,6 +18,22 @@ updates:
     #     patterns: ["*"]
 
   # - package-ecosystem: "pip"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+    # groups:
+    #   actions:
+    #     patterns: ["*"]
+
+  # - package-ecosystem: "gomod"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+    # groups:
+    #   actions:
+    #     patterns: ["*"]
+
+  # - package-ecosystem: "cargo"
   #   directory: "/"
   #   schedule:
   #     interval: "weekly"
